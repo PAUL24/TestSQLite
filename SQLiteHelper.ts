@@ -14,12 +14,54 @@ interface DatabaseHelper {
 }
 
 class SQLiteHelper implements DatabaseHelper {
+  // openDatabase(): Promise<SQLiteDatabase> {
+  //   return SQLite.openDatabase({name: 'test.db', location: 'default'});
+  // }
+
   openDatabase(): Promise<SQLiteDatabase> {
-    return SQLite.openDatabase({name: 'test.db', location: 'default'});
+    return new Promise((resolve, reject) => {
+      SQLite.openDatabase(
+        {name: 'test.db', location: 'default'},
+        db => {
+          if (db) {
+            // Database opened successfully
+            this.createProfilesTable(db)
+              .then(() => resolve(db))
+              .catch(error => reject(error));
+          } else {
+            // Database opening failed
+            reject(new Error('Failed to open database'));
+          }
+        },
+        error => {
+          // Error opening the database
+          reject(error);
+        },
+      );
+    });
   }
 
   closeDatabase(db: SQLiteDatabase): void {
     db.close();
+  }
+
+  createProfilesTable(db: SQLiteDatabase): Promise<void> {
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          'CREATE TABLE IF NOT EXISTS Profiles (id INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, lastname TEXT, datetime TEXT)',
+          [],
+          () => {
+            // Table created successfully
+            resolve();
+          },
+          error => {
+            // Error creating table
+            reject(error);
+          },
+        );
+      });
+    });
   }
 
   insertProfile(
